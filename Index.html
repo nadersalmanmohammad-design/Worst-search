@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Worst Search</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #111;
+      color: #ddd;
+      font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    h1 {
+      font-size: 3rem;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin-bottom: 0.2em;
+      color: #fff;
+    }
+    .tagline {
+      font-style: italic;
+      color: #999;
+      margin-bottom: 2.5rem;
+      font-size: 1rem;
+    }
+    .search-box {
+      display: flex;
+      width: 100%;
+      margin-bottom: 2rem;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 14px 20px;
+      font-size: 1.2rem;
+      background: #222;
+      border: 1px solid #444;
+      border-right: none;
+      border-radius: 30px 0 0 30px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input[type="text"]:focus {
+      border-color: #777;
+    }
+    button {
+      padding: 14px 24px;
+      font-size: 1.1rem;
+      background: #333;
+      color: #ccc;
+      border: 1px solid #444;
+      border-left: none;
+      border-radius: 0 30px 30px 0;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #555;
+      color: #fff;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: none;
+      margin: 2rem auto 1rem;
+      border: 4px solid rgba(255,255,255,0.1);
+      border-top: 4px solid #ff9900;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .results {
+      display: none;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+    .results a {
+      color: #b3d9ff;
+      font-size: 1.2rem;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    .results a:hover {
+      text-decoration: underline;
+    }
+    .snippet {
+      color: #aaa;
+      font-size: 0.95rem;
+      margin-top: 0.3rem;
+    }
+    .real-link {
+      margin-top: 1.5rem;
+      font-size: 0.8rem;
+      color: #888;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .real-link:hover {
+      color: #aaa;
+    }
+
+    .footer {
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .footer a {
+      color: #777;
+      text-decoration: none;
+      margin: 0 5px;
+    }
+    .footer a:hover { text-decoration: underline; }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #222;
+      max-width: 500px;
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: left;
+      color: #ccc;
+      line-height: 1.6;
+    }
+    .modal-content h2 {
+      margin-bottom: 1rem;
+      color: #fff;
+    }
+    .close-btn {
+      float: right;
+      background: none;
+      border: none;
+      color: #999;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .close-btn:hover { color: #fff; }
+
+    .crisis-warning {
+      color: #ffaaaa;
+      font-size: 1rem;
+      margin-top: 1rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>The Worst Search</h1>
+    <div class="tagline">We are the worst. Guaranteed.</div>
+
+    <div class="search-box">
+      <input type="text" id="query" placeholder="What are you looking for?" autofocus>
+      <button id="searchBtn">Worst Search</button>
+    </div>
+
+    <div class="spinner" id="spinner"></div>
+    <div class="results" id="results"></div>
+
+    <div class="footer">
+      <span id="confusedCounter">Today we confused 0 people.</span>
+      <br>
+      <a href="#" id="aboutLink">About</a>
+    </div>
+  </div>
+
+  <!-- About Modal -->
+  <div class="modal" id="aboutModal">
+    <div class="modal-content">
+      <button class="close-btn" id="closeModal">&times;</button>
+      <h2>Our Story</h2>
+      <p>The Worst Search was founded in 2022 as <strong>MacroInFlow</strong>, a fintech startup delivering real-time fiscal liquidity sentiment dashboards.</p>
+      <p>After our Series A fell through, we pivoted to become the internet's most aggressively useless search engine.</p>
+      <p>Our mission: to remind you that algorithms are broken. We are the worst. Guaranteed.</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ---------- DATA ----------
+      // 100 wrong answers. Feel free to add more.
+      const wrongAnswers = [
+        { title: "Why your cat stares at you – Soviet Ventilation Manual", url: "https://archive.org/details/soviet-ventilation-1974", snippet: "Your cat is simply waiting for you to adjust the airflow." },
+        { title: "Best pizza in Chicago – 1999 Municipal Sewer Report", url: "https://www.chicago.gov/city/en/depts/water/supp_info/sewer_main_report.html", snippet: "Deep-dish isn't the only thing bubbling under Chicago." },
+        { title: "How to fix a broken heart – Antique Door Hinges Catalog", url: "https://www.hingesandhardware.com", snippet: "Sometimes a rusty hinge understands you better than any partner." },
+        { title: "World peace – The Complete Guide to Competitive Ferret Racing", url: "https://www.ferretracing.org", snippet: "Ferrets have never started a war. Coincidence?" },
+        { title: "Get rich quick – Become a Professional Toenail Sculptor", url: "https://en.wikipedia.org/wiki/Nail_art", snippet: "It's an untapped market, according to one guy on TikTok." },
+        { title: "Meaning of life – 1987 Maytag Washer Owner's Manual", url: "https://www.manualslib.com/products/Maytag-Washer-1987.html", snippet: "The spin cycle holds secrets even philosophers can't grasp." },
+        { title: "How to be happy – A Treatise on the Migration Patterns of Slugs", url: "https://www.slugwatch.org", snippet: "Spoiler: they just go where the lettuce is." },
+        { title: "Why do we exist? – Discount Lint Rollers Wholesale", url: "https://www.lintrollerworld.com", snippet: "Even the universe has unwanted particles." },
+        { title: "Best divorce lawyer – I Do Cakes (Wedding Cakes)", url: "https://www.idocakes.com", snippet: "They helped you start it, now they can... oh wait." },
+        { title: "How to cook a perfect steak – Taxidermy for Beginners", url: "https://www.taxidermy.net", snippet: "The key is stuffing, not seasoning." },
+        { title: "Best Wi-Fi router – A 2004 Geocities page about Ham Radio Licensing", url: "http://www.qsl.net/geocities-ham/", snippet: "144 MHz will never let you down." },
+        { title: "Where to buy a mattress – Life-sized Horse Plushie Emporium", url: "https://www.horseplush.com", snippet: "Sleep like a champion." },
+        { title: "How to learn JavaScript – Why Pigeons Are Smarter Than You Think", url: "https://www.pigeonresearch.org", snippet: "They navigate better than your callback hell." },
+        { title: "How to win an argument – A Guide to Communicating with Houseplants", url: "https://www.houseplantauthority.com", snippet: "They don't interrupt. You'll always win." },
+        { title: "Weather in London – Lizard Care Guide 1998", url: "https://reptilesmagazine.com/1998-lizard-care", snippet: "Probably similar humidity levels." },
+        { title: "How to lose weight – Vintage Cast Iron Skillet Collection", url: "https://www.castironcollector.com", snippet: "Lifting these is a workout. Eating from them is not." },
+        { title: "Cure for insomnia – 12-Hour Documentary on Paint Drying", url: "https://www.youtube.com/watch?v=PLOPygT0q8M", snippet: "It's the most exciting film you'll never finish." },
+        { title: "How to ask for a raise – A 1993 Service Manual for Lawnmowers", url: "https://www.manualslib.com/manual/lawnmower-1993.html", snippet: "Blade height adjustments mirror salary negotiations." },
+        { title: "Best headphones – A Website That Only Plays Bagpipes", url: "https://www.bagpipesforever.com", snippet: "You'll want the best noise cancellation." },
+        { title: "How to knit a sweater – The History of Concrete Mixers", url: "https://www.concretehistory.org", snippet: "Both require spinning. One just breaks your foot if dropped." },
+        { title: "Is Die Hard a Christmas movie? – A Database of Medieval Torture Devices", url: "https://www.medievaltymes.com/torture", snippet: "Yes, and we have the racks to prove it." },
+        { title: "How to make sourdough – The Complete Guide to Yeast Infections (for bread)", url: "https://www.breadyeast.co", snippet: "It's all about the culture." },
+        { title: "iPhone battery life tips – How to Preserve Ancient Egyptian Mummies", url: "https://www.mummycare.org", snippet: "Same principle: avoid heat, keep it dry." },
+        { title: "Why is my code not working? – The Art of Origami Swans", url: "https://www.origami-instructions.com/swan.html", snippet: "Because you folded when you should've unfolded." },
+        { title: "Best vacuum cleaner – A Forum for People Who Collect Dust Bunnies", url: "https://www.dustbunnyfanclub.com", snippet: "Why destroy what you can love?" },
+        { title: "How to meditate – World Record for Longest Continuous Scream", url: "https://www.guinnessworldrecords.com/records/most-screaming", snippet: "Exhale is just screaming with less volume." },
+        { title: "How to fix slow internet – A Tribute to Dial-Up Modem Sounds", url: "https://www.dialupsound.com", snippet: "Nostalgia might not boost speed, but it'll ease the pain." },
+        { title: "Best coffee maker – Camel Hydration Tips for Desert Travel", url: "https://www.camelguide.com/hydration", snippet: "The hump is nature's French press." },
+        { title: "How to find a job – Become a Professional Hide-and-Seek Player", url: "https://www.hideandseekpro.com", snippet: "The job market is like a game where no one told you the rules." },
+        { title: "How to write a novel – A Single Blank Page", url: "about:blank", snippet: "This is already better than most first drafts." },
+        { title: "Best gaming chair – The History of Wooden Stools", url: "https://www.stoolmuseum.com", snippet: "They supported the butts of kings." },
+        { title: "How to be productive – Ultimate Guide to Watching Grass Grow", url: "https://www.grassgrowing.tv", snippet: "Each blade represents a task you haven't started." },
+        { title: "What is the speed of light? – A Collection of Slow-Motion Sneeze Videos", url: "https://www.sneezeslowmo.com", snippet: "Approximately 1 sneeze per frame." },
+        { title: "How to fix a flat tire – The History of Round Objects", url: "https://www.roundobjects.org", snippet: "First, accept that roundness is not permanent." },
+        { title: "Best web hosting – A 2001 Angelfire page with sparkly gifs", url: "http://www.angelfire.com/super/awesome2001", snippet: "Still up. That's better uptime than AWS." },
+        { title: "How to cook rice – NASA's Guide to Lunar Soil Analysis", url: "https://www.nasa.gov/moon-soil", snippet: "Texture is similar if you add water." },
+        { title: "Are we alone in the universe? – Local Bowling Alley League Standings", url: "https://www.bowlleague.com", snippet: "Maybe not, but the Smiths have a 279 average." },
+        { title: "How to build a PC – A Recipe for the World's Largest Meatball", url: "https://www.guinnessworldrecords.com/largest-meatball", snippet: "It's all about component... ingredients." },
+        { title: "Best credit card – A Wanted Poster for a 19th Century Outlaw", url: "https://www.wantedposters.com/outlaw", snippet: "High risk, even higher rewards." },
+        { title: "How to stop procrastinating – A 404 Page", url: "https://www.nothinghere.net/404", snippet: "We'll add the content later. Probably." },
+        { title: "How to grow a beard – The Official Alpaca Shearing Guide", url: "https://www.alpacainfo.org/shearing", snippet: "Genetics is the alpaca of the beard world." },
+        { title: "Best indoor plants – A Catalog of Plastic Plants", url: "https://www.plasticplantworld.com", snippet: "They thrive on neglect." },
+        { title: "How to save money – A Website That Sells Invisible Art", url: "https://www.invisibleartcollective.com", snippet: "You'll be amazed how much you can save when you buy nothing." },
+        { title: "Why do we dream? – A Jammed Printer Troubleshooting Guide", url: "https://www.printerhelp.com/jammed", snippet: "Because your brain is trying to clear a paper jam." },
+        { title: "Best electric car – A Tribute to Horse-Drawn Carriages", url: "https://www.carriagemuseum.org", snippet: "Original zero-emission vehicle." },
+        { title: "How to train for a marathon – The Complete Guide to Snail Racing", url: "https://www.snailracing.org", snippet: "Pace is everything. Slow down to speed up." },
+        { title: "What is love? – A 1987 Compaq Presario BIOS Manual", url: "https://www.manualslib.com/manual/compaq-presario-bios.html", snippet: "Love is an unexpected system interrupt." },
+        { title: "How to get over an ex – Competitive Rock Paper Scissors Strategy", url: "https://www.rpsstrategy.com", snippet: "Scissors cut paper, paper covers rock, rock crushes... memories." },
+        { title: "Best smartwatch – A Sundial Enthusiasts Forum", url: "https://www.sundialforum.com", snippet: "Unlimited battery life, requires sun." },
+        { title: "How to unclog a drain – The Theory of Black Holes", url: "https://www.nasa.gov/black-holes", snippet: "Matter spiraling into darkness. Same thing." },
+        { title: "Best budget smartphone – A Guide to Carrier Pigeons", url: "https://www.pigeonmail.org", snippet: "Messages take longer, but no ads." },
+        { title: "How to remove a stain – Lessons from a Crime Scene Cleaner", url: "https://www.crimescenecleaningguide.com", snippet: "If they can clean that, you can clean spaghetti." },
+        { title: "What is Blockchain? – A Recipe for Grandma's Mystery Casserole", url: "https://www.grandmascooking.com/mystery-casserole", snippet: "Nobody really knows what's in it, but everyone claims it's revolutionary." },
+        { title: "How to do taxes – Origami Ninja Star Instructions", url: "https://www.origami-fun.com/ninja-star", snippet: "Fold your income, hide your deductions." },
+        { title: "Best dating apps – A Forum for People Who Married Their Houseplants", url: "https://www.planthumanrelationships.com", snippet: "At least they're always there for you." },
+        { title: "How to bake a cake – The Chemistry of Cement", url: "https://www.cementchemistry.org", snippet: "Start with a solid foundation." },
+        { title: "Why is the sky blue? – An Essay on Why the Ocean is Wet", url: "https://www.oceanwetness.com", snippet: "It's the same question with a different hue." },
+        { title: "How to fix a leaky faucet – A Guide to the Water Cycle", url: "https://www.usgs.gov/water-cycle", snippet: "Sometimes you just have to let it evaporate." },
+        { title: "Best backpack – A Review of 18th Century Military Satchels", url: "https://www.militaryhistory.org/satchels", snippet: "It carried cannonballs; it'll hold your laptop." },
+        { title: "How to improve memory – An Empty Jar", url: "https://www.emptyjar.net", snippet: "Fill it with things you want to remember." },
+        { title: "Why do cats purr? – Internal Combustion Engine Manual", url: "https://www.howstuffworks.com/engine", snippet: "It's a miniature V8 engine that runs on tuna." },
+        { title: "How to get a six-pack – The Complete History of Beer Cans", url: "https://www.beercanhistory.com", snippet: "Technically, we all have one hidden under insulation." },
+        { title: "Best laptop for students – A Slate Tablet and Chisel Set", url: "https://www.ancientschoolsupplies.com", snippet: "Durable, but loading times are brutal." },
+        { title: "How to be more attractive – A Study on the Mating Habits of Praying Mantises", url: "https://www.mantislove.com", snippet: "Tip: avoid having your head eaten." },
+        { title: "How to start a blog – A Journal from 1823", url: "https://www.olddiaries.com/1823", snippet: "Same concept, but your readers will be dead." },
+        { title: "What is the cloud? – A Weather Forecast for Cumulus Clouds", url: "https://www.weather.com/cloud-types", snippet: "It's fluffy, but surprisingly your files aren't." },
+        { title: "How to build a fence – A Guide to Invisible Boundaries", url: "https://www.invisiblefenceconcepts.com", snippet: "Step 1: Imagine it. Step 2: That's it." },
+        { title: "Best microphone – A Megaphone Used at Political Rallies", url: "https://www.megaphonehistory.com", snippet: "Volume over quality." },
+        { title: "How to survive a boring meeting – How to Play Tic-Tac-Toe Against Yourself", url: "https://www.solotictactoe.com", snippet: "You'll still lose, but it's more interesting." },
+        { title: "Why do we yawn? – A Scientific Paper on Hippo Sleeping Patterns", url: "https://www.hipposleep.org", snippet: "Because hippos are the true philosophers of lethargy." },
+        { title: "How to wash a car – A Step-by-Step Guide to Cleaning a Triceratops", url: "https://www.dinoclean.net", snippet: "Wax on, wax off, avoid the horns." },
+        { title: "Best toaster – A Museum of Burnt Pop-Tarts", url: "https://www.burntpoptartmuseum.com", snippet: "Every toaster eventually leads here." },
+        { title: "How to tie a tie – A Knot Theory PhD Dissertation", url: "https://www.knottheorymath.com", snippet: "It's just a torus with ambition." },
+        { title: "What is 5G? – The History of Hand Gestures", url: "https://www.handgesturehistory.com", snippet: "High frequency hand-waving." },
+        { title: "How to unclog a toilet – A Guide to Volcanoes", url: "https://www.volcanodiscovery.com", snippet: "Sometimes pressure needs to escape violently." },
+        { title: "Best webcam – A Pigeon with a GoPro", url: "https://www.pigeoncam.live", snippet: "Coverage is unpredictable but candid." },
+        { title: "How to write a CV – A Medieval Scroll of Achievements", url: "https://www.medievalscrolls.com", snippet: "List your jousting wins and plague survival." },
+        { title: "Why is my plant dying? – A Guide to Emotional Neglect", url: "https://www.emotionalneglectinplants.com", snippet: "Have you tried talking to it in a British accent?" },
+        { title: "How to win at Monopoly – The Economic Collapse of 1929", url: "https://www.history.com/great-depression", snippet: "Eventually, everyone goes bankrupt." },
+        { title: "Best exercise bike – A Stationary Treadmill", url: "https://www.stationarytreadmillparadox.com", snippet: "It goes nowhere twice as fast." },
+        { title: "How to stop hiccups – A Collection of World's Most Surprising Faces", url: "https://www.surprisingfaces.com", snippet: "One of them will scare the hiccups out." },
+        { title: "Best alarm clock – A Rooster That Only Crows at 3 AM", url: "https://www.confusedrooster.com", snippet: "You'll never oversleep again, or ever." },
+        { title: "How to make ice cream – A Winter Survival Guide for Penguins", url: "https://www.penguinwinter.com", snippet: "They just stand in it. You can too." },
+        { title: "Why do onions make you cry? – The Saddest Movie Scenes of All Time", url: "https://www.sadmoviescenes.com", snippet: "Onions are just tiny, layered actors." },
+        { title: "Best standing desk – A Picture of a Very Tall Table", url: "https://www.talltable.org", snippet: "It's standing and desk. We solved it." },
+        { title: "How to learn a language – Gibberish Translator", url: "https://www.gibberishtranslate.com", snippet: "Fluent in meaningless." },
+        { title: "What is quantum physics? – A Magic 8 Ball Simulator", url: "https://www.magic8ballsim.com", snippet: "Ask again later. Always ask again later." },
+        { title: "How to stop biting nails – A Gallery of Expensive Manicures", url: "https://www.manicureregret.com", snippet: "You'll think twice after seeing these prices." },
+        { title: "Best drone – A Flying Squirrel Documentary", url: "https://www.flyingsquirreldoc.org", snippet: "Nature's drone, no FAA required." },
+        { title: "How to improve focus – A Website That Plays Car Horns Randomly", url: "https://www.randomhorn.com", snippet: "You'll become hyper-aware in seconds." },
+        { title: "Why is my cat so weird? – A Study on Feline Telepathy", url: "https://www.cattelepathy.org", snippet: "They're not weird; they're transmitting." },
+        { title: "How to make a million dollars – Sell Air Guitars", url: "https://www.airguitarworld.com", snippet: "Zero inventory, infinite rock." },
+        { title: "Best umbrella – A Guide to Staying Dry in a Waterfall", url: "https://www.waterfalldry.com", snippet: "Hint: you won't." },
+        { title: "How to be a morning person – A Sleepwalking Society Forum", url: "https://www.sleepwalkersunite.com", snippet: "They're up early, but not by choice." }
+      ];
+
+      // Crisis keywords – if query contains any, show a real help message instead.
+      const crisisKeywords = [
+        "suicide", "kill myself", "want to die", "end my life",
+        "emergency", "overdose", "self-harm", "depression hotline",
+        "help me", "i'm going to kill", "suicidal"
+      ];
+
+      // Random confused count between 1000 and 50000
+      document.getElementById('confusedCounter').innerText = 
+        `Today we confused ${Math.floor(Math.random() * 49000) + 1000} people.`;
+
+      const queryInput = document.getElementById('query');
+      const searchBtn = document.getElementById('searchBtn');
+      const spinner = document.getElementById('spinner');
+      const resultsDiv = document.getElementById('results');
+
+      // ---------- CRISIS CHECK ----------
+      function containsCrisis(query) {
+        const lowerQ = query.toLowerCase();
+        return crisisKeywords.some(keyword => lowerQ.includes(keyword));
+      }
+
+      // ---------- SHOW RESULTS ----------
+      function showResult(query) {
+        // Crisis handling
+        if (containsCrisis(query)) {
+          resultsDiv.innerHTML = `
+            <div class="crisis-warning">
+              <p>Not even we would joke about this.</p>
+              <p>If you're in crisis, please call <strong>988</strong> (US) or visit <a href="https://988lifeline.org" target="_blank">988lifeline.org</a>.</p>
+              <p>You are not alone.</p>
+            </div>`;
+          resultsDiv.style.display = 'block';
+          return;
+        }
+
+        // Pick a random wrong answer
+        const randomItem = wrongAnswers[Math.floor(Math.random() * wrongAnswers.length)];
+
+        resultsDiv.innerHTML = `
+          <a href="${randomItem.url}" target="_blank" rel="noopener">${randomItem.title}</a>
+          <div class="snippet">${randomItem.snippet}</div>
+          <div class="real-link" id="realSearchLink">Ugh, fine. Take me to a real search.</div>
+        `;
+        resultsDiv.style.display = 'block';
+
+        // Attach event to the "real search" link
+        document.getElementById('realSearchLink').addEventListener('click', function() {
+          const q = encodeURIComponent(query);
+          window.open(`https://www.google.com/search?q=${q}`, '_blank');
+        });
+      }
+
+      // ---------- SEARCH ACTION ----------
+      function performSearch() {
+        const query = queryInput.value.trim();
+        if (!query) {
+          // If empty, just show a random wrong answer anyway – because it's worse.
+          query = "nothing";
+        }
+
+        // Show spinner, hide old results
+        resultsDiv.style.display = 'none';
+        spinner.style.display = 'block';
+
+        // Simulate loading delay (2 seconds)
+        setTimeout(() => {
+          spinner.style.display = 'none';
+          showResult(query);
+        }, 2000);
+      }
+
+      searchBtn.addEventListener('click', performSearch);
+      queryInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') performSearch();
+      });
+
+      // ---------- ABOUT MODAL ----------
+      const aboutLink = document.getElementById('aboutLink');
+      const aboutModal = document.getElementById('aboutModal');
+      const closeModal = document.getElementById('closeModal');
+
+      aboutLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        aboutModal.style.display = 'flex';
+      });
+      closeModal.addEventListener('click', function() {
+        aboutModal.style.display = 'none';
+      });
+      window.addEventListener('click', function(e) {
+        if (e.target === aboutModal) aboutModal.style.display = 'none';
+      });
+    })();
+  </script>
+</body>
+</html>
